@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ideageek.FightersArena.Api", "Source\Ideageek.FightersArena.Api\Ideageek.FightersArena.Api.csproj", "{50AC1835-9427-432C-8D77-54AF350EFDC0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ideageek.FightersArena.Core", "Source\Ideageek.FightersArena.Core\Ideageek.FightersArena.Core.csproj", "{9D785740-50C9-4A6C-87A1-3505993456C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ideageek.FightersArena.Tests", "Source\Ideageek.FightersArena.Tests\Ideageek.FightersArena.Tests.csproj", "{E8CFB6C0-8CFD-45F8-9EE2-5F8FAD95B2FB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50AC1835-9427-432C-8D77-54AF350EFDC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50AC1835-9427-432C-8D77-54AF350EFDC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50AC1835-9427-432C-8D77-54AF350EFDC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50AC1835-9427-432C-8D77-54AF350EFDC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D785740-50C9-4A6C-87A1-3505993456C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D785740-50C9-4A6C-87A1-3505993456C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D785740-50C9-4A6C-87A1-3505993456C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D785740-50C9-4A6C-87A1-3505993456C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8CFB6C0-8CFD-45F8-9EE2-5F8FAD95B2FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8CFB6C0-8CFD-45F8-9EE2-5F8FAD95B2FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8CFB6C0-8CFD-45F8-9EE2-5F8FAD95B2FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8CFB6C0-8CFD-45F8-9EE2-5F8FAD95B2FB}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F47E0BF9-8A62-448C-AB43-4E2BE317C7E8}
+	EndGlobalSection
+EndGlobal

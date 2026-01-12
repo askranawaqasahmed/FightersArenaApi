@@ -1,1 +1,1 @@
-# FightersArenaApi
+﻿# Ideageek.FightersArenaApi
