@@ -13,13 +13,15 @@ namespace Ideageek.FightersArena.Core.Services;
 
 public interface IAuthService
 {
-    Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request);
+    Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request, string role = "Player");
     Task<AuthResponse?> LoginAsync(AuthLoginRequest request);
+    Task<bool> SendResetLinkAsync(string email);
 }
 
 public class AuthService : IAuthService
 {
     private readonly IUserStore<AspNetUser> _userStore;
+    private readonly IUserRoleStore<AspNetUser> _userRoleStore;
     private readonly IPasswordHasher<AspNetUser> _passwordHasher;
     private readonly IConfiguration _configuration;
     private readonly PlayerRepository _playerRepository;
@@ -30,12 +32,13 @@ public class AuthService : IAuthService
         PlayerRepository playerRepository)
     {
         _userStore = userStore;
+        _userRoleStore = userStore as IUserRoleStore<AspNetUser> ?? throw new InvalidOperationException("UserStore must implement IUserRoleStore");
         _passwordHasher = passwordHasher;
         _configuration = configuration;
         _playerRepository = playerRepository;
     }
 
-    public async Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request)
+    public async Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request, string role = "Player")
     {
         var user = new AspNetUser
         {
@@ -53,6 +56,8 @@ public class AuthService : IAuthService
         var result = await _userStore.CreateAsync(user, CancellationToken.None);
         if (!result.Succeeded) return null;
 
+        await _userRoleStore.AddToRoleAsync(user, role, CancellationToken.None);
+
         var player = new Player
         {
             Id = Guid.NewGuid(),
@@ -63,7 +68,7 @@ public class AuthService : IAuthService
         };
         await _playerRepository.InsertAsync(player);
 
-        return BuildToken(user);
+        return await BuildToken(user);
     }
 
     public async Task<AuthResponse?> LoginAsync(AuthLoginRequest request)
@@ -81,10 +86,18 @@ public class AuthService : IAuthService
             return null;
         }
 
-        return BuildToken(user);
+        return await BuildToken(user);
     }
 
-    private AuthResponse BuildToken(AspNetUser user)
+    public async Task<bool> SendResetLinkAsync(string email)
+    {
+        // Placeholder: in a real implementation, generate a token and send email/SMS.
+        var normalized = email.ToUpperInvariant();
+        var user = await _userStore.FindByNameAsync(normalized, CancellationToken.None);
+        return user is not null;
+    }
+
+    private async Task<AuthResponse> BuildToken(AspNetUser user)
     {
         var issuer = _configuration["Jwt:Issuer"] ?? "Ideageek.FightersArena";
         var audience = _configuration["Jwt:Audience"] ?? "Ideageek.FightersArena.Api";
@@ -95,13 +108,17 @@ public class AuthService : IAuthService
         var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         var expires = DateTime.UtcNow.AddMinutes(expiryMinutes);
 
-        var claims = new[]
+        var roles = await _userRoleStore.GetRolesAsync(user, CancellationToken.None);
+
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty)
         };
+
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
         var token = new JwtSecurityToken(
             issuer: issuer,
@@ -193,8 +210,11 @@ public interface IPlayerService
 {
     Task<IEnumerable<Player>> GetAllAsync();
     Task<Player?> GetAsync(Guid id);
+    Task<Player?> GetByUserIdAsync(Guid userId);
+    Task<PlayerProfileDto?> GetProfileAsync(Guid userId);
     Task<Guid> CreateAsync(CreatePlayerRequest request);
     Task UpdateAsync(Guid id, UpdatePlayerRequest request);
+    Task<Guid> UpdateProfileAsync(Guid userId, UpdatePlayerRequest request);
     Task DeleteAsync(Guid id);
 }
 
@@ -209,6 +229,16 @@ public class PlayerService : IPlayerService
 
     public Task<IEnumerable<Player>> GetAllAsync() => _playerRepository.GetAllAsync();
     public Task<Player?> GetAsync(Guid id) => _playerRepository.GetByIdAsync(id);
+    public Task<Player?> GetByUserIdAsync(Guid userId) => _playerRepository.GetByUserIdAsync(userId);
+
+    public async Task<PlayerProfileDto?> GetProfileAsync(Guid userId)
+    {
+        var player = await _playerRepository.GetByUserIdAsync(userId);
+        if (player is null) return null;
+
+        var gameIds = await _playerRepository.GetGameIdsAsync(player.Id);
+        return new PlayerProfileDto(player, gameIds);
+    }
 
     public async Task<Guid> CreateAsync(CreatePlayerRequest request)
     {
@@ -241,6 +271,23 @@ public class PlayerService : IPlayerService
             request.Country
         });
         await _playerRepository.SetPlayerGamesAsync(id, request.GameIds);
+    }
+
+    public async Task<Guid> UpdateProfileAsync(Guid userId, UpdatePlayerRequest request)
+    {
+        var player = await _playerRepository.GetByUserIdAsync(userId);
+        if (player is null) return Guid.Empty;
+
+        await _playerRepository.UpdateAsync(player.Id, new
+        {
+            request.DisplayName,
+            request.SponsorId,
+            request.AvatarUrl,
+            request.Bio,
+            request.Country
+        });
+        await _playerRepository.SetPlayerGamesAsync(player.Id, request.GameIds);
+        return player.Id;
     }
 
     public Task DeleteAsync(Guid id) => _playerRepository.DeleteAsync(id);
@@ -355,6 +402,7 @@ public interface ITournamentService
     Task DeleteAsync(Guid id);
     Task AddStageAsync(Guid tournamentId, AddStageRequest request);
     Task AddParticipantsAsync(Guid stageId, AddStageParticipantsRequest request);
+    Task RegisterAsync(Guid tournamentId, RegisterTournamentRequest request);
     Task<IEnumerable<Match>> GenerateMatchesAsync(Guid stageId, GenerateMatchesRequest request);
     Task RecordResultAsync(Guid matchId, RecordMatchResultRequest request);
     Task FinalizeAsync(Guid tournamentId, FinalizeTournamentRequest request);
@@ -459,6 +507,38 @@ public class TournamentService : ITournamentService
         await _participantRepository.ReplaceAsync(stageId, participants);
     }
 
+    public async Task RegisterAsync(Guid tournamentId, RegisterTournamentRequest request)
+    {
+        var stage = (await _stageRepository.GetByTournamentAsync(tournamentId))
+            .OrderBy(s => s.StageOrder)
+            .FirstOrDefault();
+        if (stage is null)
+        {
+            throw new InvalidOperationException("Tournament has no configured stages");
+        }
+
+        var participants = (await _participantRepository.GetByStageAsync(stage.Id)).ToList();
+        if (participants.Any(p => p.ParticipantId == request.ParticipantId &&
+                                  p.ParticipantType.Equals(request.ParticipantType, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Participant already registered");
+        }
+
+        var seed = request.Seed ?? (participants.Count == 0 ? 1 : participants.Max(p => p.Seed) + 1);
+
+        var participant = new StageParticipant
+        {
+            Id = Guid.NewGuid(),
+            StageId = stage.Id,
+            ParticipantType = request.ParticipantType,
+            ParticipantId = request.ParticipantId,
+            Seed = seed,
+            GroupId = request.GroupId
+        };
+
+        await _participantRepository.InsertAsync(participant);
+    }
+
     public async Task<IEnumerable<Match>> GenerateMatchesAsync(Guid stageId, GenerateMatchesRequest request)
     {
         var participants = (await _participantRepository.GetByStageAsync(stageId))
@@ -560,6 +640,183 @@ public class TournamentService : ITournamentService
     }
 }
 
+public interface ILeagueService
+{
+    Task<IEnumerable<League>> GetAllAsync();
+    Task<League?> GetAsync(Guid id);
+    Task<Guid> CreateAsync(CreateLeagueRequest request);
+    Task UpdateAsync(Guid id, UpdateLeagueRequest request);
+    Task DeleteAsync(Guid id);
+    Task AddParticipantsAsync(Guid leagueId, AddLeagueParticipantsRequest request);
+    Task<IEnumerable<LeagueMatch>> GenerateMatchesAsync(Guid leagueId, GenerateLeagueMatchesRequest request);
+    Task RecordResultAsync(Guid matchId, RecordLeagueMatchResultRequest request);
+    Task<IEnumerable<LeagueMatch>> GetFixturesAsync(Guid leagueId);
+    Task<IEnumerable<LeagueStandingDto>> GetStandingsAsync(Guid leagueId);
+}
+
+public class LeagueService : ILeagueService
+{
+    private readonly LeagueRepository _leagueRepository;
+    private readonly LeagueParticipantRepository _participantRepository;
+    private readonly LeagueMatchRepository _matchRepository;
+    private readonly LeagueMatchResultRepository _resultRepository;
+
+    public LeagueService(
+        LeagueRepository leagueRepository,
+        LeagueParticipantRepository participantRepository,
+        LeagueMatchRepository matchRepository,
+        LeagueMatchResultRepository resultRepository)
+    {
+        _leagueRepository = leagueRepository;
+        _participantRepository = participantRepository;
+        _matchRepository = matchRepository;
+        _resultRepository = resultRepository;
+    }
+
+    public Task<IEnumerable<League>> GetAllAsync() => _leagueRepository.GetAllAsync();
+    public Task<League?> GetAsync(Guid id) => _leagueRepository.GetByIdAsync(id);
+
+    public async Task<Guid> CreateAsync(CreateLeagueRequest request)
+    {
+        var league = new League
+        {
+            Id = Guid.NewGuid(),
+            SeasonId = request.SeasonId,
+            GameId = request.GameId,
+            Name = request.Name,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Status = "Draft",
+            CreatedAt = DateTime.UtcNow
+        };
+        return await _leagueRepository.InsertAsync(league);
+    }
+
+    public Task UpdateAsync(Guid id, UpdateLeagueRequest request) =>
+        _leagueRepository.UpdateAsync(id, new
+        {
+            request.SeasonId,
+            request.GameId,
+            request.Name,
+            request.StartDate,
+            request.EndDate,
+            request.Status
+        });
+
+    public Task DeleteAsync(Guid id) => _leagueRepository.DeleteAsync(id);
+
+    public async Task AddParticipantsAsync(Guid leagueId, AddLeagueParticipantsRequest request)
+    {
+        var participants = request.Participants.Select(p => new LeagueParticipant
+        {
+            Id = Guid.NewGuid(),
+            LeagueId = leagueId,
+            ParticipantType = p.ParticipantType,
+            ParticipantId = p.ParticipantId,
+            Seed = p.Seed,
+            GroupId = p.GroupId
+        });
+
+        await _participantRepository.ReplaceAsync(leagueId, participants);
+    }
+
+    public async Task<IEnumerable<LeagueMatch>> GenerateMatchesAsync(Guid leagueId, GenerateLeagueMatchesRequest request)
+    {
+        var participants = (await _participantRepository.GetByLeagueAsync(leagueId)).OrderBy(p => p.Seed).ToList();
+        var matches = new List<LeagueMatch>();
+        int round = 1;
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            for (int j = i + 1; j < participants.Count; j++)
+            {
+                var a = participants[i];
+                var b = participants[j];
+                matches.Add(new LeagueMatch
+                {
+                    Id = Guid.NewGuid(),
+                    LeagueId = leagueId,
+                    RoundNumber = round++,
+                    AId = a.ParticipantId,
+                    BId = b.ParticipantId,
+                    ScheduledAt = DateTime.UtcNow.AddDays(round),
+                    Status = "Scheduled"
+                });
+
+                if (request.DoubleRoundRobin)
+                {
+                    matches.Add(new LeagueMatch
+                    {
+                        Id = Guid.NewGuid(),
+                        LeagueId = leagueId,
+                        RoundNumber = round++,
+                        AId = b.ParticipantId,
+                        BId = a.ParticipantId,
+                        ScheduledAt = DateTime.UtcNow.AddDays(round),
+                        Status = "Scheduled"
+                    });
+                }
+            }
+        }
+
+        if (matches.Count > 0)
+        {
+            await _matchRepository.InsertManyAsync(matches);
+        }
+
+        return matches;
+    }
+
+    public async Task RecordResultAsync(Guid matchId, RecordLeagueMatchResultRequest request)
+    {
+        var result = new LeagueMatchResult
+        {
+            MatchId = matchId,
+            WinnerId = request.WinnerId,
+            ScoreA = request.ScoreA,
+            ScoreB = request.ScoreB,
+            DetailsJson = request.DetailsJson
+        };
+
+        await _resultRepository.UpsertAsync(result);
+        await _matchRepository.UpdateAsync(matchId, new { Status = "Completed" });
+    }
+
+    public Task<IEnumerable<LeagueMatch>> GetFixturesAsync(Guid leagueId) =>
+        _matchRepository.GetByLeagueAsync(leagueId);
+
+    public async Task<IEnumerable<LeagueStandingDto>> GetStandingsAsync(Guid leagueId)
+    {
+        var matches = (await _matchRepository.GetByLeagueAsync(leagueId)).ToList();
+        var results = (await _resultRepository.GetByLeagueAsync(leagueId)).ToDictionary(r => r.MatchId, r => r);
+        var participants = await _participantRepository.GetByLeagueAsync(leagueId);
+
+        var standings = participants.ToDictionary(
+            p => p.ParticipantId,
+            p => new LeagueStandingDto(p.ParticipantId, p.ParticipantType, 0, 0, 0));
+
+        foreach (var match in matches)
+        {
+            if (!results.TryGetValue(match.Id, out var res)) continue;
+
+            if (standings.TryGetValue(res.WinnerId, out var winner))
+            {
+                standings[res.WinnerId] = winner with { Wins = winner.Wins + 1, Points = winner.Points + 3 };
+            }
+
+            var loserId = res.WinnerId == match.AId ? match.BId : match.AId;
+            if (standings.TryGetValue(loserId, out var loser))
+            {
+                standings[loserId] = loser with { Losses = loser.Losses + 1 };
+            }
+        }
+
+        return standings.Values
+            .OrderByDescending(s => s.Points)
+            .ThenByDescending(s => s.Wins)
+            .ThenBy(s => s.Losses);
+    }
+}
 public interface ILeaderboardService
 {
     Task<IEnumerable<LeaderboardEntryDto>> GetCurrentAsync(string type, int top, Guid? gameId);
@@ -628,4 +885,22 @@ public class HomeService : IHomeService
 
         return new HomeSummaryDto(upcoming, topPlayers, topTeams);
     }
+}
+
+public interface IPointsService
+{
+    Task<IEnumerable<PointsLedger>> GetForParticipantAsync(Guid participantId, string participantType, Guid? seasonId);
+}
+
+public class PointsService : IPointsService
+{
+    private readonly PointsLedgerRepository _ledgerRepository;
+
+    public PointsService(PointsLedgerRepository ledgerRepository)
+    {
+        _ledgerRepository = ledgerRepository;
+    }
+
+    public Task<IEnumerable<PointsLedger>> GetForParticipantAsync(Guid participantId, string participantType, Guid? seasonId) =>
+        _ledgerRepository.GetByParticipantAsync(participantId, participantType, seasonId);
 }

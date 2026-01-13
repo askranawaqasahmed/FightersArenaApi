@@ -19,6 +19,17 @@ public class PlayerRepository : BaseRepository<Player>
 
     public Task<IEnumerable<Player>> GetByIdsAsync(IEnumerable<Guid> ids) => Query().WhereIn("Id", ids).GetAsync<Player>();
 
+    public async Task<Player?> GetByUserIdAsync(Guid userId) =>
+        await Query().Where("UserId", userId).FirstOrDefaultAsync<Player>();
+
+    public Task<int> UpdateByUserIdAsync(Guid userId, object data) => Query().Where("UserId", userId).UpdateAsync(data);
+
+    public async Task<IEnumerable<Guid>> GetGameIdsAsync(Guid playerId)
+    {
+        var games = await Db.Query("PlayerGames").Where("PlayerId", playerId).GetAsync<PlayerGame>();
+        return games.Select(g => g.GameId);
+    }
+
     public async Task SetPlayerGamesAsync(Guid playerId, IEnumerable<Guid>? gameIds)
     {
         await Db.Query("PlayerGames").Where("PlayerId", playerId).DeleteAsync();
@@ -157,4 +168,64 @@ public class PointsLedgerRepository : BaseRepository<PointsLedger>
 
     public Task<IEnumerable<PointsLedger>> GetBySeasonAsync(Guid seasonId) =>
         Query().Where("SeasonId", seasonId).GetAsync<PointsLedger>();
+
+    public Task<IEnumerable<PointsLedger>> GetByParticipantAsync(Guid participantId, string participantType, Guid? seasonId = null)
+    {
+        var query = Query()
+            .Where("ParticipantId", participantId)
+            .Where("ParticipantType", participantType);
+
+        if (seasonId.HasValue)
+        {
+            query = query.Where("SeasonId", seasonId.Value);
+        }
+
+        return query.GetAsync<PointsLedger>();
+    }
+}
+
+public class LeagueRepository : BaseRepository<League>
+{
+    public LeagueRepository(QueryFactory db) : base(db, "Leagues") { }
+}
+
+public class LeagueParticipantRepository : BaseRepository<LeagueParticipant>
+{
+    public LeagueParticipantRepository(QueryFactory db) : base(db, "LeagueParticipants") { }
+
+    public Task<IEnumerable<LeagueParticipant>> GetByLeagueAsync(Guid leagueId) =>
+        Query().Where("LeagueId", leagueId).OrderBy("Seed").GetAsync<LeagueParticipant>();
+
+    public async Task ReplaceAsync(Guid leagueId, IEnumerable<LeagueParticipant> participants)
+    {
+        await Query().Where("LeagueId", leagueId).DeleteAsync();
+        await Query().InsertAsync(participants);
+    }
+}
+
+public class LeagueMatchRepository : BaseRepository<LeagueMatch>
+{
+    public LeagueMatchRepository(QueryFactory db) : base(db, "LeagueMatches") { }
+
+    public Task<IEnumerable<LeagueMatch>> GetByLeagueAsync(Guid leagueId) =>
+        Query().Where("LeagueId", leagueId).OrderBy("RoundNumber").GetAsync<LeagueMatch>();
+
+    public Task InsertManyAsync(IEnumerable<LeagueMatch> matches) => Query().InsertAsync(matches);
+}
+
+public class LeagueMatchResultRepository : BaseRepository<LeagueMatchResult>
+{
+    public LeagueMatchResultRepository(QueryFactory db) : base(db, "LeagueMatchResults", "MatchId") { }
+
+    public async Task UpsertAsync(LeagueMatchResult result)
+    {
+        await Query().Where("MatchId", result.MatchId).DeleteAsync();
+        await InsertAsync(result);
+    }
+
+    public Task<IEnumerable<LeagueMatchResult>> GetByLeagueAsync(Guid leagueId) =>
+        Query()
+            .Join("LeagueMatches as lm", "lm.Id", "LeagueMatchResults.MatchId")
+            .Where("lm.LeagueId", leagueId)
+            .GetAsync<LeagueMatchResult>();
 }

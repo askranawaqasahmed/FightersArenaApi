@@ -61,6 +61,10 @@ public static class ServiceRegistration
         services.AddScoped<PlacementRepository>();
         services.AddScoped<PointsRuleRepository>();
         services.AddScoped<PointsLedgerRepository>();
+        services.AddScoped<LeagueRepository>();
+        services.AddScoped<LeagueParticipantRepository>();
+        services.AddScoped<LeagueMatchRepository>();
+        services.AddScoped<LeagueMatchResultRepository>();
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IGameService, GameService>();
@@ -71,6 +75,8 @@ public static class ServiceRegistration
         services.AddScoped<ITournamentService, TournamentService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IHomeService, HomeService>();
+        services.AddScoped<IPointsService, PointsService>();
+        services.AddScoped<ILeagueService, LeagueService>();
 
         return services;
     }

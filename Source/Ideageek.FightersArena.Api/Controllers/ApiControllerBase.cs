@@ -12,6 +12,9 @@ public abstract class ApiControllerBase : ControllerBase
     protected IActionResult ApiCreated(string message, object? value = null) =>
         StatusCode((int)HttpStatusCode.Created, ResponseHandler.ResponseStatus(false, message, value, HttpStatusCode.Created));
 
+    protected IActionResult ApiAccepted(string message, object? value = null) =>
+        StatusCode((int)HttpStatusCode.Accepted, ResponseHandler.ResponseStatus(false, message, value, HttpStatusCode.Accepted));
+
     protected IActionResult ApiError(HttpStatusCode code, string message, object? value = null) =>
         StatusCode((int)code, ResponseHandler.ResponseStatus(true, message, value, code));
 }

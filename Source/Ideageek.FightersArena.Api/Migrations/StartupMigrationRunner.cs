@@ -234,6 +234,80 @@ BEGIN
     );
 END;
 ")
+        ,
+        new MigrationDefinition(
+            "20260113_seed_roles",
+            @"
+INSERT INTO AspNetRoles (Id, Name, NormalizedName)
+SELECT NEWID(), 'SuperAdmin', 'SUPERADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'SUPERADMIN');
+
+INSERT INTO AspNetRoles (Id, Name, NormalizedName)
+SELECT NEWID(), 'Admin', 'ADMIN'
+WHERE NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'ADMIN');
+
+INSERT INTO AspNetRoles (Id, Name, NormalizedName)
+SELECT NEWID(), 'Organizer', 'ORGANIZER'
+WHERE NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'ORGANIZER');
+
+INSERT INTO AspNetRoles (Id, Name, NormalizedName)
+SELECT NEWID(), 'Player', 'PLAYER'
+WHERE NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'PLAYER');
+")
+        ,
+        new MigrationDefinition(
+            "20260113_leagues_schema",
+            @"
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Leagues')
+BEGIN
+    CREATE TABLE Leagues (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        SeasonId UNIQUEIDENTIFIER NOT NULL,
+        GameId UNIQUEIDENTIFIER NOT NULL,
+        Name NVARCHAR(200) NOT NULL,
+        StartDate DATETIME2 NOT NULL,
+        EndDate DATETIME2 NULL,
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END;
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LeagueParticipants')
+BEGIN
+    CREATE TABLE LeagueParticipants (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        LeagueId UNIQUEIDENTIFIER NOT NULL,
+        ParticipantType NVARCHAR(50) NOT NULL,
+        ParticipantId UNIQUEIDENTIFIER NOT NULL,
+        Seed INT NOT NULL,
+        GroupId NVARCHAR(50) NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LeagueMatches')
+BEGIN
+    CREATE TABLE LeagueMatches (
+        Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        LeagueId UNIQUEIDENTIFIER NOT NULL,
+        RoundNumber INT NOT NULL,
+        AId UNIQUEIDENTIFIER NOT NULL,
+        BId UNIQUEIDENTIFIER NOT NULL,
+        ScheduledAt DATETIME2 NULL,
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Scheduled'
+    );
+END;
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'LeagueMatchResults')
+BEGIN
+    CREATE TABLE LeagueMatchResults (
+        MatchId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        WinnerId UNIQUEIDENTIFIER NOT NULL,
+        ScoreA INT NOT NULL,
+        ScoreB INT NOT NULL,
+        DetailsJson NVARCHAR(MAX) NULL
+    );
+END;
+")
     };
 
     public static async Task ApplyMigrationsAsync(IServiceProvider services)

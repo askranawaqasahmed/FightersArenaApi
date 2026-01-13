@@ -18,6 +18,19 @@ public class AuthController : ApiControllerBase
         _authService = authService;
     }
 
+    [HttpPost("signupmobile")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SignupMobile(AuthRegisterRequest request)
+    {
+        var response = await _authService.RegisterAsync(request, "Player");
+        if (response is null)
+        {
+            return ApiError(HttpStatusCode.BadRequest, "Signup failed");
+        }
+
+        return ApiOk("Signup succeeded", response);
+    }
+
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register(AuthRegisterRequest request)
@@ -42,6 +55,14 @@ public class AuthController : ApiControllerBase
         }
 
         return ApiOk("Login succeeded", response);
+    }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        await _authService.SendResetLinkAsync(request.Email);
+        return ApiAccepted("If an account exists for this email, reset instructions have been sent.");
     }
 
     [HttpGet("me")]

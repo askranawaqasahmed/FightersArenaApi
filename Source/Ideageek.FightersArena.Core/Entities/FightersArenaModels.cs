@@ -173,3 +173,49 @@ public class PointsLedger
     public string Reason { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+public class League
+{
+    [Key]
+    public Guid Id { get; set; }
+    public Guid SeasonId { get; set; }
+    public Guid GameId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string Status { get; set; } = "Draft";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class LeagueParticipant
+{
+    [Key]
+    public Guid Id { get; set; }
+    public Guid LeagueId { get; set; }
+    public string ParticipantType { get; set; } = "Player";
+    public Guid ParticipantId { get; set; }
+    public int Seed { get; set; }
+    public string? GroupId { get; set; }
+}
+
+public class LeagueMatch
+{
+    [Key]
+    public Guid Id { get; set; }
+    public Guid LeagueId { get; set; }
+    public int RoundNumber { get; set; }
+    public Guid AId { get; set; }
+    public Guid BId { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+    public string Status { get; set; } = "Scheduled";
+}
+
+public class LeagueMatchResult
+{
+    [Key]
+    public Guid MatchId { get; set; }
+    public Guid WinnerId { get; set; }
+    public int ScoreA { get; set; }
+    public int ScoreB { get; set; }
+    public string? DetailsJson { get; set; }
+}

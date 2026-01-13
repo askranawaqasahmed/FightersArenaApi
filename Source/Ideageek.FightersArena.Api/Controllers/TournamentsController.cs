@@ -1,4 +1,6 @@
+using Ideageek.FightersArena.Core.Dtos;
 using Ideageek.FightersArena.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -26,5 +28,20 @@ public class TournamentsController : ApiControllerBase
         if (tournament is null) return ApiError(HttpStatusCode.NotFound, "Tournament not found");
 
         return ApiOk("Tournament retrieved", tournament);
+    }
+
+    [HttpPost("{id:guid}/register")]
+    [Authorize]
+    public async Task<IActionResult> Register(Guid id, RegisterTournamentRequest request)
+    {
+        try
+        {
+            await _tournamentService.RegisterAsync(id, request);
+            return ApiOk("Registration completed", new { tournamentId = id });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiError(HttpStatusCode.BadRequest, ex.Message);
+        }
     }
 }
