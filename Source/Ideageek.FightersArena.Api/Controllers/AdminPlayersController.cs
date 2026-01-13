@@ -1,4 +1,4 @@
-﻿using Ideageek.FightersArena.Core.Dtos;
+using Ideageek.FightersArena.Core.Dtos;
 using Ideageek.FightersArena.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ namespace Ideageek.FightersArena.Api.Controllers;
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/admin/players")]
-public class AdminPlayersController : ControllerBase
+public class AdminPlayersController : ApiControllerBase
 {
     private readonly IPlayerService _playerService;
 
@@ -18,26 +18,27 @@ public class AdminPlayersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get() => Ok(await _playerService.GetAllAsync());
+    public async Task<IActionResult> Get() =>
+        ApiOk("Players retrieved", await _playerService.GetAllAsync());
 
     [HttpPost]
     public async Task<IActionResult> Create(CreatePlayerRequest request)
     {
         var id = await _playerService.CreateAsync(request);
-        return CreatedAtAction(nameof(Get), new { id }, new { id });
+        return ApiCreated("Player created", new { id });
     }
 
     [HttpPost("{id:guid}/update")]
     public async Task<IActionResult> Update(Guid id, UpdatePlayerRequest request)
     {
         await _playerService.UpdateAsync(id, request);
-        return NoContent();
+        return ApiOk("Player updated", new { id });
     }
 
     [HttpPost("{id:guid}/delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _playerService.DeleteAsync(id);
-        return NoContent();
+        return ApiOk("Player deleted", new { id });
     }
 }

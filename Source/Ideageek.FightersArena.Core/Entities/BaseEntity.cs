@@ -9,6 +9,6 @@ namespace Ideageek.FightersArena.Core.Entities
         public DateTime CreatedOn { get; set; }
         [Required]
         public Guid CreatedBy { get; set; }
-        public string CreatedByName { get; set; }
+        public string CreatedByName { get; set; } = string.Empty;
     }
 }

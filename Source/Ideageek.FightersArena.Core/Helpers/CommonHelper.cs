@@ -53,13 +53,11 @@ namespace Ideageek.FightersArena.Core.Helpers
         public static string GetEnumDescription(this Enum value)
         {
             var field = value.GetType().GetField(value.ToString());
-            var attributes = field.GetCustomAttributes(false);
-            dynamic displayAttribute = null;
-            if (attributes.Any())
-            {
-                displayAttribute = attributes.ElementAt(0);
-            }
-            return displayAttribute?.Description ?? String.Empty;
+            if (field is null) return string.Empty;
+
+            var displayAttribute = field.GetCustomAttributes(false).FirstOrDefault();
+            var description = displayAttribute?.GetType().GetProperty("Description")?.GetValue(displayAttribute) as string;
+            return description ?? string.Empty;
         }
         public static bool IsValidEnum<T>(this Enum value)
         {
@@ -71,7 +69,7 @@ namespace Ideageek.FightersArena.Core.Helpers
                 .Where(c => !Char.IsWhiteSpace(c))
                 .ToArray());
         }
-        public static string GetTextFromRegex(string text, string keyword)
+        public static string? GetTextFromRegex(string text, string keyword)
         {
             var match = Regex.Match(text, keyword + @"\s+(\d+)");
             if (match.Success)

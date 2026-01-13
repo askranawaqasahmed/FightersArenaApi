@@ -3,9 +3,9 @@ using System.Net;
 
 namespace Ideageek.FightersArena.Core.Handlers
 {
-    public static class GenericResponseHandler
+    public static class ResponseHandler
     {
-        public static object ResponseStatus(bool error, string message, object value)
+        public static object ResponseStatus(bool error, string message, object? value, HttpStatusCode? statusCode = null)
         {
             int count = 0;
 
@@ -44,9 +44,11 @@ namespace Ideageek.FightersArena.Core.Handlers
                 }
             }
 
+            var code = statusCode ?? (error ? HttpStatusCode.BadRequest : HttpStatusCode.OK);
+
             return new
             {
-                code = error ? HttpStatusCode.BadRequest : HttpStatusCode.OK,
+                code,
                 date = DateTime.Now.ToLongDateString(),
                 error,
                 message,

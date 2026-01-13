@@ -21,39 +21,39 @@ namespace Ideageek.FightersArena.Core.Helpers
         }
         public string GetConnectionString()
         {
-            return _configuration.GetConnectionString("CAFASuiteConnection");
+            return _configuration.GetConnectionString("CAFASuiteConnection") ?? string.Empty;
         }
         public string GetPpraUrl()
         {
-            return _configuration["AppSettings:PpraUrl"];
+            return _configuration["AppSettings:PpraUrl"] ?? string.Empty;
         }
         public string GetPpraWithPaginationUrl()
         {
-            return _configuration["AppSettings:PpraWithPaginationUrl"];
+            return _configuration["AppSettings:PpraWithPaginationUrl"] ?? string.Empty;
         }
         public string GetNBPRatesUrl()
         {
-            return _configuration["AppSettings:NBPRatesUrl"];
+            return _configuration["AppSettings:NBPRatesUrl"] ?? string.Empty;
         }
         public string GetPythonPath()
         {
-            return _configuration["AppSettings:PythonPath"];
+            return _configuration["AppSettings:PythonPath"] ?? string.Empty;
         }
         public string GetEnumDescription(Enum value)
         {
             var field = value.GetType().GetField(value.ToString());
-            var attributes = field.GetCustomAttributes(false);
-            dynamic displayAttribute = null;
-            if (attributes.Any())
-            {
-                displayAttribute = attributes.ElementAt(0);
-            }
-            return displayAttribute?.Description ?? String.Empty;
+            if (field is null) return string.Empty;
+
+            var displayAttribute = field.GetCustomAttributes(false).FirstOrDefault();
+            var description = displayAttribute?.GetType().GetProperty("Description")?.GetValue(displayAttribute) as string;
+            return description ?? string.Empty;
         }
         public IEnumerable<DateTime> EachCalendarDay(DateTime startDate, DateTime endDate)
         {
-            for (var date = startDate.Date; date.Date <= endDate.Date; date = date.AddDays(1)) yield
-            return date;
+            for (var date = startDate.Date; date.Date <= endDate.Date; date = date.AddDays(1))
+            {
+                yield return date;
+            }
         }
     }
 }

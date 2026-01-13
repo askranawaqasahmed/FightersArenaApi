@@ -1,11 +1,12 @@
-﻿using Ideageek.FightersArena.Core.Services;
+using Ideageek.FightersArena.Core.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace Ideageek.FightersArena.Api.Controllers;
 
 [ApiController]
 [Route("api/teams")]
-public class TeamsController : ControllerBase
+public class TeamsController : ApiControllerBase
 {
     private readonly ITeamService _teamService;
 
@@ -15,12 +16,15 @@ public class TeamsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(await _teamService.GetAllAsync());
+    public async Task<IActionResult> GetAll() =>
+        ApiOk("Teams retrieved", await _teamService.GetAllAsync());
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
     {
         var team = await _teamService.GetAsync(id);
-        return team is null ? NotFound() : Ok(team);
+        if (team is null) return ApiError(HttpStatusCode.NotFound, "Team not found");
+
+        return ApiOk("Team retrieved", team);
     }
 }

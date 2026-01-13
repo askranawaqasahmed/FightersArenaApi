@@ -2,6 +2,7 @@
 using Ideageek.FightersArena.Core.Entities.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ideageek.FightersArena.Services.Authorization
 {
@@ -28,16 +29,18 @@ namespace Ideageek.FightersArena.Services.Authorization
             return IdentityResult.Success;
         }
 
-        public async Task<AspNetRole?> FindByIdAsync(string roleId, CancellationToken cancellationToken)
+        [return: MaybeNull]
+        public async Task<AspNetRole> FindByIdAsync(string roleId, CancellationToken cancellationToken)
         {
             string query = "SELECT * FROM AspNetRoles WHERE Id = @Id";
-            return await _dbConnection.QueryFirstOrDefaultAsync<AspNetRole>(query, new { Id = roleId });
+            return (await _dbConnection.QueryFirstOrDefaultAsync<AspNetRole>(query, new { Id = roleId }))!;
         }
 
-        public async Task<AspNetRole?> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
+        [return: MaybeNull]
+        public async Task<AspNetRole> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
         {
             string query = "SELECT * FROM AspNetRoles WHERE NormalizedName = @NormalizedName";
-            return await _dbConnection.QueryFirstOrDefaultAsync<AspNetRole>(query, new { NormalizedName = normalizedRoleName });
+            return (await _dbConnection.QueryFirstOrDefaultAsync<AspNetRole>(query, new { NormalizedName = normalizedRoleName }))!;
         }
 
         public Task<string?> GetRoleIdAsync(AspNetRole role, CancellationToken cancellationToken)
@@ -48,7 +51,7 @@ namespace Ideageek.FightersArena.Services.Authorization
 
         public Task SetRoleNameAsync(AspNetRole role, string? roleName, CancellationToken cancellationToken)
         {
-            role.Name = roleName;
+            role.Name = roleName ?? string.Empty;
             return Task.CompletedTask;
         }
 
@@ -57,7 +60,7 @@ namespace Ideageek.FightersArena.Services.Authorization
 
         public Task SetNormalizedRoleNameAsync(AspNetRole role, string? normalizedName, CancellationToken cancellationToken)
         {
-            role.NormalizedName = normalizedName;
+            role.NormalizedName = normalizedName ?? string.Empty;
             return Task.CompletedTask;
         }
 

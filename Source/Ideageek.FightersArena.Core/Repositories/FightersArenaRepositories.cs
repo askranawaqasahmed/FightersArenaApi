@@ -53,7 +53,11 @@ public class SeasonRepository : BaseRepository<Season>
 {
     public SeasonRepository(QueryFactory db) : base(db, "Seasons") { }
 
-    public Task<Season?> GetActiveAsync() => Query().Where("IsActive", true).FirstOrDefaultAsync<Season>();
+    public async Task<Season?> GetActiveAsync()
+    {
+        var season = await Query().Where("IsActive", true).FirstOrDefaultAsync<Season>();
+        return season;
+    }
 }
 
 public class TournamentRepository : BaseRepository<Tournament>

@@ -38,7 +38,11 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
         return await query.GetAsync<T>();
     }
 
-    public virtual Task<T?> GetByIdAsync(Guid id) => Query().Where(IdColumn, id).FirstOrDefaultAsync<T>();
+    public virtual async Task<T?> GetByIdAsync(Guid id)
+    {
+        var record = await Query().Where(IdColumn, id).FirstOrDefaultAsync<T>();
+        return record;
+    }
 
     public virtual async Task<Guid> InsertAsync(T entity)
     {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ideageek.FightersArena.Services.Authorization
 {
@@ -63,29 +64,31 @@ namespace Ideageek.FightersArena.Services.Authorization
             return rowsAffected > 0 ? IdentityResult.Success : IdentityResult.Failed();
         }
 
-        public async Task<AspNetUser?> FindByIdAsync(string userId, CancellationToken cancellationToken)
+        [return: MaybeNull]
+        public async Task<AspNetUser> FindByIdAsync(string userId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             using var db = CreateConnection();
-            return await db.QueryFirstOrDefaultAsync<AspNetUser>(
-                "SELECT * FROM AspNetUsers WHERE Id = @Id", new { Id = Guid.Parse(userId) });
+            return (await db.QueryFirstOrDefaultAsync<AspNetUser>(
+                "SELECT * FROM AspNetUsers WHERE Id = @Id", new { Id = Guid.Parse(userId) }))!;
         }
 
-        public async Task<AspNetUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
+        [return: MaybeNull]
+        public async Task<AspNetUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             using var db = CreateConnection();
-            return await db.QueryFirstOrDefaultAsync<AspNetUser>(
+            return (await db.QueryFirstOrDefaultAsync<AspNetUser>(
                 "SELECT * FROM AspNetUsers WHERE NormalizedUserName = @NormalizedUserName",
-                new { NormalizedUserName = normalizedUserName });
+                new { NormalizedUserName = normalizedUserName }))!;
         }
 
-        public Task<string?> GetUserIdAsync(AspNetUser user, CancellationToken cancellationToken)
+        public Task<string> GetUserIdAsync(AspNetUser user, CancellationToken cancellationToken)
             => Task.FromResult(user.Id.ToString());
 
-        public Task<string?> GetUserNameAsync(AspNetUser user, CancellationToken cancellationToken)
+        public Task<string> GetUserNameAsync(AspNetUser user, CancellationToken cancellationToken)
             => Task.FromResult(user.UserName);
 
         public Task SetUserNameAsync(AspNetUser user, string userName, CancellationToken cancellationToken)
@@ -94,7 +97,7 @@ namespace Ideageek.FightersArena.Services.Authorization
             return Task.CompletedTask;
         }
 
-        public Task<string?> GetNormalizedUserNameAsync(AspNetUser user, CancellationToken cancellationToken)
+        public Task<string> GetNormalizedUserNameAsync(AspNetUser user, CancellationToken cancellationToken)
             => Task.FromResult(user.NormalizedUserName);
 
         public Task SetNormalizedUserNameAsync(AspNetUser user, string normalizedName, CancellationToken cancellationToken)

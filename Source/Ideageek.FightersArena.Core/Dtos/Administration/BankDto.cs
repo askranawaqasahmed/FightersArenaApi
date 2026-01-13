@@ -13,15 +13,15 @@ namespace Ideageek.FightersArena.Core.Dtos.Administration
         [Required]
         public Guid GeneralBankId { get; set; }
         [Required]
-        public string AccountTitle { get; set; }
+        public string AccountTitle { get; set; } = string.Empty;
         [Required]
-        public string AccountNumber { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
         [Required]
         public Guid AccountTypeId { get; set; }
-        public string IBANNumber { get; set; }
-        public string SwiftCode { get; set; }
-        public string BranchCode { get; set; }
-        public string Address { get; set; }
+        public string? IBANNumber { get; set; }
+        public string? SwiftCode { get; set; }
+        public string? BranchCode { get; set; }
+        public string? Address { get; set; }
         public double OpeningBalance { get; set; }
         [AllowNull]
         public DateTime? DateOfOpeningBalance { get; set; }
@@ -36,15 +36,15 @@ namespace Ideageek.FightersArena.Core.Dtos.Administration
         [Required]
         public Guid GeneralBankId { get; set; }
         [Required]
-        public string AccountTitle { get; set; }
+        public string AccountTitle { get; set; } = string.Empty;
         [Required]
-        public string AccountNumber { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
         [Required]
         public Guid AccountTypeId { get; set; }
-        public string IBANNumber { get; set; }
-        public string SwiftCode { get; set; }
-        public string BranchCode { get; set; }
-        public string Address { get; set; }
+        public string? IBANNumber { get; set; }
+        public string? SwiftCode { get; set; }
+        public string? BranchCode { get; set; }
+        public string? Address { get; set; }
         public double OpeningBalance { get; set; }
         [AllowNull]
         public DateTime? DateOfOpeningBalance { get; set; }
