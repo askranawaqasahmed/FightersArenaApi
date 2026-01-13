@@ -1,6 +1,6 @@
 # Ideageek.FightersArena — Codex Plan (.NET API + SQL Server + SqlKata)
 
-> Target: Build a pure .NET Web API (no frontend) using SQL Server and SqlKata for all data access, following the existing stack (SqlKata + Dapper + Microsoft.Data.SqlClient; DI for QueryFactory; JWT/Identity preserved).
+> Target: Build a pure .NET Web API (no frontend) using SQL Server and SqlKata for all data access, following the existing stack (SqlKata + Dapper + Microsoft.Data.SqlClient; DI for QueryFactory; JWT/Identity preserved). Swagger auto-authorizes with a generated JWT on load; migrations run automatically at startup and create the database if missing.
 
 ---
 
@@ -10,7 +10,8 @@
   - `Ideageek.FightersArena.Api`
   - `Ideageek.FightersArena.Core`
   - `Ideageek.FightersArena.Tests`
-- Goal: Controllers stay thin; business logic in Core; repositories use SqlKata QueryFactory (no stored procedures).
+- Swagger auto-auth: `/swagger-authtoken.js` injects a JWT and pre-authorizes.
+- Startup migrations: database is created if missing and pending migrations are applied.
 
 ---
 
@@ -36,6 +37,7 @@
 - Authentication & authorization (JWT/Identity)
 - DI composition root (DB + repositories + services)
 - Exception handling + validation pipeline
+- Swagger with auto-JWT injection
 
 **Ideageek.FightersArena.Core**
 - Domain entities, DTOs
@@ -109,12 +111,10 @@ In `Ideageek.FightersArena.Api/Program.cs` (via `AddIdeageekFightersArenaApi`):
 - GET `/api/leaderboards/current?type=players&top=10&gameId=...`
 
 ### Admin (JWT + role=Admin)
-- POST/GET/PUT/DELETE `/api/admin/games`
-- POST/GET/PUT/DELETE `/api/admin/sponsors`
-- POST/GET/PUT/DELETE `/api/admin/players`
-- POST/GET/PUT/DELETE `/api/admin/teams`
-- POST/GET/PUT/DELETE `/api/admin/seasons`
-- POST/GET/PUT/DELETE `/api/admin/tournaments`
+- POST/GET `/api/admin/games` (create/read)
+- POST `/api/admin/games/{id}/update`
+- POST `/api/admin/games/{id}/delete`
+- Same POST update/delete pattern for sponsors, players, teams, seasons, tournaments
 - POST `/api/admin/tournaments/{id}/stages`
 - POST `/api/admin/stages/{stageId}/generate-matches`
 - POST `/api/admin/matches/{matchId}/result`
@@ -140,8 +140,8 @@ In `Ideageek.FightersArena.Api/Program.cs` (via `AddIdeageekFightersArenaApi`):
 ---
 
 ## 11) Configuration
-- `ConnectionStrings:Default`
-- `Jwt:Issuer`, `Jwt:Audience`, `Jwt:Key`, `Jwt:ExpiryMinutes`
+- `ConnectionStrings:Default` (SQL Server; DB auto-created if missing)
+- `Jwt:Issuer`, `Jwt:Audience`, `Jwt:Key` (32+ bytes), `Jwt:ExpiryMinutes`
 - Optional: `Cors:AllowedOrigins`
 
 ---
