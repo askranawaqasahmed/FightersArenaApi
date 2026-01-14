@@ -3,8 +3,13 @@ using Ideageek.FightersArena.Core.Entities;
 using Ideageek.FightersArena.Core.Entities.Authorization;
 using Ideageek.FightersArena.Core.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Data.Common;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Ideageek.FightersArena.Core.Services;
 
@@ -20,15 +25,18 @@ public class AuthService : IAuthService
     private readonly IUserStore<AspNetUser> _userStore;
     private readonly IUserRoleStore<AspNetUser> _userRoleStore;
     private readonly IPasswordHasher<AspNetUser> _passwordHasher;
+    private readonly IConfiguration _configuration;
     private readonly PlayerRepository _playerRepository;
 
     public AuthService(IUserStore<AspNetUser> userStore,
         IPasswordHasher<AspNetUser> passwordHasher,
+        IConfiguration configuration,
         PlayerRepository playerRepository)
     {
         _userStore = userStore;
         _userRoleStore = userStore as IUserRoleStore<AspNetUser> ?? throw new InvalidOperationException("UserStore must implement IUserRoleStore");
         _passwordHasher = passwordHasher;
+        _configuration = configuration;
         _playerRepository = playerRepository;
     }
 
@@ -79,7 +87,7 @@ public class AuthService : IAuthService
             };
             await _playerRepository.InsertAsync(player);
 
-            return BuildAuthResponse(user);
+            return await BuildTokenAsync(user);
         }
         catch (DbException ex)
         {
@@ -104,7 +112,7 @@ public class AuthService : IAuthService
             return null;
         }
 
-        return BuildAuthResponse(user);
+        return await BuildTokenAsync(user);
     }
 
     public async Task<bool> SendResetLinkAsync(string email)
@@ -115,7 +123,39 @@ public class AuthService : IAuthService
         return user is not null;
     }
 
-    private static AuthResponse BuildAuthResponse(AspNetUser user) => new(user.Id);
+    private async Task<AuthResponse> BuildTokenAsync(AspNetUser user)
+    {
+        var issuer = _configuration["Jwt:Issuer"] ?? "Ideageek.FightersArena";
+        var audience = _configuration["Jwt:Audience"] ?? "Ideageek.FightersArena.Api";
+        var key = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
+        var expiryMinutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var parsed) ? parsed : 120;
+
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        var expires = DateTime.UtcNow.AddMinutes(expiryMinutes);
+
+        var roles = await _userRoleStore.GetRolesAsync(user, CancellationToken.None);
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty)
+        };
+
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: expires,
+            signingCredentials: creds);
+
+        var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
+        return new AuthResponse(user.Id, tokenValue, expires);
+    }
 
     private static void ValidateRegisterRequest(AuthRegisterRequest request)
     {
@@ -164,15 +204,9 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Password is required.");
         }
 
-        if (password.Length < 8)
+        if (password.Length < 6)
         {
-            throw new InvalidOperationException("Password must be at least 8 characters long.");
-        }
-
-        if (!System.Text.RegularExpressions.Regex.IsMatch(password, "[A-Za-z]") ||
-            !System.Text.RegularExpressions.Regex.IsMatch(password, "\\d"))
-        {
-            throw new InvalidOperationException("Password must contain at least one letter and one number.");
+            throw new InvalidOperationException("Password must be at least 6 characters long.");
         }
     }
 }
