@@ -30,7 +30,7 @@ public class AuthController : ApiControllerBase
                 return ApiError(HttpStatusCode.BadRequest, "Signup failed");
             }
 
-            return ApiOk($"Signup succeeded. Token: {response.Token}", response);
+            return ApiOk(response.Token);
         }
         catch (InvalidOperationException ex)
         {
@@ -50,7 +50,7 @@ public class AuthController : ApiControllerBase
                 return ApiError(HttpStatusCode.BadRequest, "Registration failed");
             }
 
-            return ApiOk($"Registration succeeded. Token: {response.Token}", response);
+            return ApiOk(response.Token);
         }
         catch (InvalidOperationException ex)
         {
@@ -70,7 +70,7 @@ public class AuthController : ApiControllerBase
                 return ApiError(HttpStatusCode.Unauthorized, "Invalid credentials");
             }
 
-            return ApiOk($"Login succeeded. Token: {response.Token}", response);
+            return ApiOk(response.Token);
         }
         catch (InvalidOperationException ex)
         {
