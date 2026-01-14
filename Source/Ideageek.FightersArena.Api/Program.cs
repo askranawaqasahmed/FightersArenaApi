@@ -44,7 +44,11 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
+    options.AddPolicy("AllowAll", policy => policy
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .SetIsOriginAllowed(_ => true)
+        .AllowCredentials());
 });
 
 builder.Services.AddIdeageekFightersArenaApi(builder.Configuration);

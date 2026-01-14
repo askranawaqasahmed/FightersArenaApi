@@ -6,7 +6,7 @@ public record PagedResult<T>(IEnumerable<T> Items, int Total);
 
 public record AuthRegisterRequest(string Email, string Password, string GamerTag, string DisplayName);
 public record AuthLoginRequest(string Email, string Password);
-public record AuthResponse(Guid UserId, string Token, DateTime ExpiresAt);
+public record AuthResponse(Guid UserId);
 public record ForgotPasswordRequest(string Email);
 
 public record CreateGameRequest(string Name, string Slug, string? CoverUrl);
