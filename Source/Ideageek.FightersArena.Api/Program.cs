@@ -1,6 +1,7 @@
 using Ideageek.FightersArena.Api;
 using Ideageek.FightersArena.Api.Migrations;
 using Ideageek.FightersArena.Core.Entities.Authorization;
+using Ideageek.FightersArena.Core.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,7 +102,11 @@ app.UseExceptionHandler(errorApp =>
     {
         var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
         Console.WriteLine($"[Unhandled] {error?.Message}");
-        await context.Response.WriteAsync("An error occurred.");
+
+        var payload = ResponseHandler.ResponseStatus(true, "An unexpected error occurred.", null, HttpStatusCode.InternalServerError);
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(payload);
     });
 });
 

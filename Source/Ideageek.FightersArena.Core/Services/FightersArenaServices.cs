@@ -3,6 +3,7 @@ using Ideageek.FightersArena.Core.Entities;
 using Ideageek.FightersArena.Core.Entities.Authorization;
 using Ideageek.FightersArena.Core.Repositories;
 using Microsoft.AspNetCore.Identity;
+using System.Data.Common;
 
 namespace Ideageek.FightersArena.Core.Services;
 
@@ -32,35 +33,56 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request, string role = "Player")
     {
-        var user = new AspNetUser
+        try
         {
-            Id = Guid.NewGuid(),
-            UserName = request.Email,
-            NormalizedUserName = request.Email.ToUpperInvariant(),
-            Email = request.Email,
-            NormalizedEmail = request.Email.ToUpperInvariant(),
-            FullName = request.DisplayName
-        };
+            var normalizedEmail = request.Email.ToUpperInvariant();
 
-        var hash = _passwordHasher.HashPassword(user, request.Password);
-        user.PasswordHash = hash;
+            var existingUser = await _userStore.FindByNameAsync(normalizedEmail, CancellationToken.None);
+            if (existingUser is not null)
+            {
+                return null;
+            }
 
-        var result = await _userStore.CreateAsync(user, CancellationToken.None);
-        if (!result.Succeeded) return null;
+            var existingPlayer = await _playerRepository.GetByGamerTagAsync(request.GamerTag);
+            if (existingPlayer is not null)
+            {
+                return null;
+            }
 
-        await _userRoleStore.AddToRoleAsync(user, role, CancellationToken.None);
+            var user = new AspNetUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = request.Email,
+                NormalizedUserName = normalizedEmail,
+                Email = request.Email,
+                NormalizedEmail = normalizedEmail,
+                FullName = request.DisplayName
+            };
 
-        var player = new Player
+            var hash = _passwordHasher.HashPassword(user, request.Password);
+            user.PasswordHash = hash;
+
+            var result = await _userStore.CreateAsync(user, CancellationToken.None);
+            if (!result.Succeeded) return null;
+
+            await _userRoleStore.AddToRoleAsync(user, role, CancellationToken.None);
+
+            var player = new Player
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                GamerTag = request.GamerTag,
+                DisplayName = request.DisplayName,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _playerRepository.InsertAsync(player);
+
+            return BuildAuthResponse(user);
+        }
+        catch (DbException)
         {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            GamerTag = request.GamerTag,
-            DisplayName = request.DisplayName,
-            CreatedAt = DateTime.UtcNow
-        };
-        await _playerRepository.InsertAsync(player);
-
-        return BuildAuthResponse(user);
+            return null;
+        }
     }
 
     public async Task<AuthResponse?> LoginAsync(AuthLoginRequest request)

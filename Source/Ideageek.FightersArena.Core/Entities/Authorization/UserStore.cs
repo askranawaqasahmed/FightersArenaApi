@@ -132,10 +132,25 @@ namespace Ideageek.FightersArena.Services.Authorization
         public async Task AddToRoleAsync(AspNetUser user, string roleName, CancellationToken cancellationToken)
         {
             using var db = CreateConnection();
-            var role = await db.QuerySingleOrDefaultAsync<AspNetRole>("SELECT * FROM AspNetRoles WHERE Name = @RoleName", new { RoleName = roleName });
+            var role = await db.QuerySingleOrDefaultAsync<AspNetRole>(
+                "SELECT * FROM AspNetRoles WHERE NormalizedName = @NormalizedName",
+                new { NormalizedName = roleName.ToUpperInvariant() });
 
             if (role == null)
-                throw new InvalidOperationException($"Role '{roleName}' not found.");
+            {
+                role = new AspNetRole
+                {
+                    Id = Guid.NewGuid(),
+                    Name = roleName,
+                    NormalizedName = roleName.ToUpperInvariant()
+                };
+
+                const string insertRoleSql = @"
+                    INSERT INTO AspNetRoles (Id, Name, NormalizedName)
+                    VALUES (@Id, @Name, @NormalizedName)";
+
+                await db.ExecuteAsync(insertRoleSql, role);
+            }
 
             const string sql = "INSERT INTO AspNetUserRoles (UserId, RoleId) VALUES (@UserId, @RoleId)";
             await db.ExecuteAsync(sql, new { UserId = user.Id, RoleId = role.Id });

@@ -19,6 +19,9 @@ public class PlayerRepository : BaseRepository<Player>
 
     public Task<IEnumerable<Player>> GetByIdsAsync(IEnumerable<Guid> ids) => Query().WhereIn("Id", ids).GetAsync<Player>();
 
+    public async Task<Player?> GetByGamerTagAsync(string gamerTag) =>
+        await Query().Where("GamerTag", gamerTag).FirstOrDefaultAsync<Player>();
+
     public async Task<Player?> GetByUserIdAsync(Guid userId) =>
         await Query().Where("UserId", userId).FirstOrDefaultAsync<Player>();
 
