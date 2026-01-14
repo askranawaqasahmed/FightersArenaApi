@@ -22,39 +22,60 @@ public class AuthController : ApiControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> SignupMobile(AuthRegisterRequest request)
     {
-        var response = await _authService.RegisterAsync(request, "Player");
-        if (response is null)
+        try
         {
-            return ApiError(HttpStatusCode.BadRequest, "Signup failed");
-        }
+            var response = await _authService.RegisterAsync(request, "Player");
+            if (response is null)
+            {
+                return ApiError(HttpStatusCode.BadRequest, "Signup failed");
+            }
 
-        return ApiOk("Signup succeeded", response);
+            return ApiOk("Signup succeeded", response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiError(HttpStatusCode.BadRequest, ex.Message);
+        }
     }
 
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register(AuthRegisterRequest request)
     {
-        var response = await _authService.RegisterAsync(request);
-        if (response is null)
+        try
         {
-            return ApiError(HttpStatusCode.BadRequest, "Registration failed");
-        }
+            var response = await _authService.RegisterAsync(request);
+            if (response is null)
+            {
+                return ApiError(HttpStatusCode.BadRequest, "Registration failed");
+            }
 
-        return ApiOk("Registration succeeded", response);
+            return ApiOk("Registration succeeded", response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiError(HttpStatusCode.BadRequest, ex.Message);
+        }
     }
 
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login(AuthLoginRequest request)
     {
-        var response = await _authService.LoginAsync(request);
-        if (response is null)
+        try
         {
-            return ApiError(HttpStatusCode.Unauthorized, "Invalid credentials");
-        }
+            var response = await _authService.LoginAsync(request);
+            if (response is null)
+            {
+                return ApiError(HttpStatusCode.Unauthorized, "Invalid credentials");
+            }
 
-        return ApiOk("Login succeeded", response);
+            return ApiOk("Login succeeded", response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiError(HttpStatusCode.BadRequest, ex.Message);
+        }
     }
 
     [HttpPost("forgot-password")]

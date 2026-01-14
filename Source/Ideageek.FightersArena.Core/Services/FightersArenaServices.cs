@@ -4,6 +4,7 @@ using Ideageek.FightersArena.Core.Entities.Authorization;
 using Ideageek.FightersArena.Core.Repositories;
 using Microsoft.AspNetCore.Identity;
 using System.Data.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace Ideageek.FightersArena.Core.Services;
 
@@ -36,17 +37,18 @@ public class AuthService : IAuthService
         try
         {
             var normalizedEmail = request.Email.ToUpperInvariant();
+            ValidateRegisterRequest(request);
 
             var existingUser = await _userStore.FindByNameAsync(normalizedEmail, CancellationToken.None);
             if (existingUser is not null)
             {
-                return null;
+                throw new InvalidOperationException("Email is already registered.");
             }
 
             var existingPlayer = await _playerRepository.GetByGamerTagAsync(request.GamerTag);
             if (existingPlayer is not null)
             {
-                return null;
+                throw new InvalidOperationException("Gamer tag is already taken.");
             }
 
             var user = new AspNetUser
@@ -79,14 +81,16 @@ public class AuthService : IAuthService
 
             return BuildAuthResponse(user);
         }
-        catch (DbException)
+        catch (DbException ex)
         {
-            return null;
+            throw new InvalidOperationException($"Signup failed: {ex.Message}", ex);
         }
     }
 
     public async Task<AuthResponse?> LoginAsync(AuthLoginRequest request)
     {
+        ValidateLoginRequest(request);
+
         var normalized = request.Email.ToUpperInvariant();
         var user = await _userStore.FindByNameAsync(normalized, CancellationToken.None);
         if (user is null || string.IsNullOrEmpty(user.PasswordHash))
@@ -112,6 +116,65 @@ public class AuthService : IAuthService
     }
 
     private static AuthResponse BuildAuthResponse(AspNetUser user) => new(user.Id);
+
+    private static void ValidateRegisterRequest(AuthRegisterRequest request)
+    {
+        ValidateEmail(request.Email);
+        ValidatePasswordFormat(request.Password);
+
+        if (string.IsNullOrWhiteSpace(request.GamerTag))
+        {
+            throw new InvalidOperationException("Gamer tag is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            throw new InvalidOperationException("Display name is required.");
+        }
+    }
+
+    private static void ValidateLoginRequest(AuthLoginRequest request)
+    {
+        ValidateEmail(request.Email);
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            throw new InvalidOperationException("Password is required.");
+        }
+    }
+
+    private static void ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("Email is required.");
+        }
+
+        var emailValidator = new EmailAddressAttribute();
+        if (!emailValidator.IsValid(email))
+        {
+            throw new InvalidOperationException("Email format is invalid.");
+        }
+    }
+
+    private static void ValidatePasswordFormat(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new InvalidOperationException("Password is required.");
+        }
+
+        if (password.Length < 8)
+        {
+            throw new InvalidOperationException("Password must be at least 8 characters long.");
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(password, "[A-Za-z]") ||
+            !System.Text.RegularExpressions.Regex.IsMatch(password, "\\d"))
+        {
+            throw new InvalidOperationException("Password must contain at least one letter and one number.");
+        }
+    }
 }
 
 public interface IGameService

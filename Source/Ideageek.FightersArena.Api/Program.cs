@@ -103,7 +103,8 @@ app.UseExceptionHandler(errorApp =>
         var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
         Console.WriteLine($"[Unhandled] {error?.Message}");
 
-        var payload = ResponseHandler.ResponseStatus(true, "An unexpected error occurred.", null, HttpStatusCode.InternalServerError);
+        var message = error?.Message ?? "An unexpected error occurred.";
+        var payload = ResponseHandler.ResponseStatus(true, message, null, HttpStatusCode.InternalServerError);
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(payload);
