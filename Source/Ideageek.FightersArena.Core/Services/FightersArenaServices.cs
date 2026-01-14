@@ -91,7 +91,7 @@ public class AuthService : IAuthService
     {
         ValidateLoginRequest(request);
 
-        var normalized = request.Email.ToUpperInvariant();
+        var normalized = request.Email.Trim().ToUpperInvariant();
         var user = await _userStore.FindByNameAsync(normalized, CancellationToken.None);
         if (user is null || string.IsNullOrEmpty(user.PasswordHash))
         {

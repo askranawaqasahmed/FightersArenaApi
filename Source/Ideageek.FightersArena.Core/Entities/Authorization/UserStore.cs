@@ -80,8 +80,14 @@ namespace Ideageek.FightersArena.Services.Authorization
             cancellationToken.ThrowIfCancellationRequested();
 
             using var db = CreateConnection();
-            return (await db.QueryFirstOrDefaultAsync<AspNetUser>(
-                "SELECT * FROM AspNetUsers WHERE NormalizedUserName = @NormalizedUserName",
+            const string sql = @"
+                SELECT TOP 1 *
+                FROM AspNetUsers
+                WHERE NormalizedUserName = @NormalizedUserName
+                   OR LOWER(UserName) = LOWER(@NormalizedUserName)
+                   OR LOWER(Email) = LOWER(@NormalizedUserName)";
+
+            return (await db.QueryFirstOrDefaultAsync<AspNetUser>(sql,
                 new { NormalizedUserName = normalizedUserName }))!;
         }
 
