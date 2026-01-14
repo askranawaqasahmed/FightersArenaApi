@@ -4,6 +4,7 @@ using Ideageek.FightersArena.Core.Entities.Authorization;
 using Ideageek.FightersArena.Core.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
@@ -51,6 +52,11 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod()
         .SetIsOriginAllowed(_ => true)
         .AllowCredentials());
+});
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
 });
 
 builder.Services.AddIdeageekFightersArenaApi(builder.Configuration);
@@ -105,7 +111,7 @@ app.UseExceptionHandler(errorApp =>
 
         var message = error?.Message ?? "An unexpected error occurred.";
         var payload = ResponseHandler.ResponseStatus(true, message, null, HttpStatusCode.InternalServerError);
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        context.Response.StatusCode = (int)HttpStatusCode.OK;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(payload);
     });
