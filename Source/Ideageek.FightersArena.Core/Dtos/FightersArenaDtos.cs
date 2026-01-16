@@ -18,6 +18,10 @@ public record AuthLoginRequest(
 
 public record AuthResponse(Guid UserId, string Token, DateTime ExpiresAt);
 public record ForgotPasswordRequest([Required, EmailAddress] string Email);
+public record UpdateProfileRequest(
+    [Required] string DisplayName,
+    [Required] string GamerTag,
+    [Required] string PhoneNumber);
 
 public record CreateGameRequest(
     [Required] string Name,

@@ -153,4 +153,25 @@ public class AuthController : ApiControllerBase
 
         return ApiOk("User profile", profile);
     }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdValue) || !Guid.TryParse(userIdValue, out var userId))
+        {
+            return ApiError(HttpStatusCode.Unauthorized, "User not found in token");
+        }
+
+        try
+        {
+            var playerId = await _authService.UpdateProfileAsync(userId, request);
+            return ApiOk("Profile updated", new { id = playerId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiError(HttpStatusCode.BadRequest, ex.Message);
+        }
+    }
 }

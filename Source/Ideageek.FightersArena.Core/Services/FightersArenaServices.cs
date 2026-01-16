@@ -18,6 +18,7 @@ public interface IAuthService
     Task<AuthResponse?> RegisterAsync(AuthRegisterRequest request, string role = "Player");
     Task<AuthResponse?> LoginAsync(AuthLoginRequest request);
     Task<bool> SendResetLinkAsync(string email);
+    Task<Guid> UpdateProfileAsync(Guid userId, UpdateProfileRequest request);
 }
 
 public class AuthService : IAuthService
@@ -124,6 +125,36 @@ public class AuthService : IAuthService
         return user is not null;
     }
 
+    public async Task<Guid> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
+    {
+        if (userId == Guid.Empty) throw new InvalidOperationException("Invalid user id.");
+        ValidateProfileRequest(request);
+
+        var user = await _userStore.FindByIdAsync(userId.ToString(), CancellationToken.None);
+        if (user is null) throw new InvalidOperationException("User not found.");
+
+        var player = await _playerRepository.GetByUserIdAsync(userId);
+        if (player is null) throw new InvalidOperationException("Player not found.");
+
+        var existingGamer = await _playerRepository.GetByGamerTagAsync(request.GamerTag);
+        if (existingGamer is not null && existingGamer.Id != player.Id)
+        {
+            throw new InvalidOperationException("Gamer tag is already taken.");
+        }
+
+        user.FullName = request.DisplayName;
+        user.PhoneNumber = request.PhoneNumber;
+        await _userStore.UpdateAsync(user, CancellationToken.None);
+
+        await _playerRepository.UpdateAsync(player.Id, new
+        {
+            DisplayName = request.DisplayName,
+            GamerTag = request.GamerTag
+        });
+
+        return player.Id;
+    }
+
     private async Task<AuthResponse> BuildTokenAsync(AspNetUser user)
     {
         var issuer = _configuration["Jwt:Issuer"] ?? "Ideageek.FightersArena";
@@ -214,6 +245,24 @@ public class AuthService : IAuthService
         if (password.Length < 6)
         {
             throw new InvalidOperationException("Password must be at least 6 characters long.");
+        }
+    }
+
+    private static void ValidateProfileRequest(UpdateProfileRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            throw new InvalidOperationException("Display name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.GamerTag))
+        {
+            throw new InvalidOperationException("Gamer tag is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+        {
+            throw new InvalidOperationException("Phone number is required.");
         }
     }
 }
