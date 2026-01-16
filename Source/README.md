@@ -14,6 +14,7 @@
   ```
 - Error responses also use HTTP 200 with `code` set to the logical status (e.g., 400/401/500) and a descriptive `message`.
 - Password policy for signup: minimum 6 characters; numbers are not required.
+- Convention: all create/update/write operations use POST (no PUT/PATCH). Example: profile updates use `POST /api/auth/profile/update`.
 
 ## Response shape (all APIs)
 - HTTP status is always 200.

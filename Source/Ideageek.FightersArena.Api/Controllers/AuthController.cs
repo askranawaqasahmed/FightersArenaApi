@@ -154,7 +154,7 @@ public class AuthController : ApiControllerBase
         return ApiOk("User profile", profile);
     }
 
-    [HttpPut("profile")]
+    [HttpPost("profile/update")]
     [Authorize]
     public async Task<IActionResult> UpdateProfile(UpdateProfileRequest request)
     {
