@@ -212,7 +212,8 @@ BEGIN
         PasswordHash NVARCHAR(MAX) NULL,
         Email NVARCHAR(256) NULL,
         NormalizedEmail NVARCHAR(256) NULL,
-        EmailConfirmed BIT NOT NULL DEFAULT 0
+        EmailConfirmed BIT NOT NULL DEFAULT 0,
+        PhoneNumber NVARCHAR(50) NULL
     );
 END;
 
@@ -306,6 +307,15 @@ BEGIN
         ScoreB INT NOT NULL,
         DetailsJson NVARCHAR(MAX) NULL
     );
+END;
+")
+        ,
+        new MigrationDefinition(
+            "20260117_add_user_phone",
+            @"
+IF COL_LENGTH('AspNetUsers', 'PhoneNumber') IS NULL
+BEGIN
+    ALTER TABLE AspNetUsers ADD PhoneNumber NVARCHAR(50) NULL;
 END;
 ")
     };

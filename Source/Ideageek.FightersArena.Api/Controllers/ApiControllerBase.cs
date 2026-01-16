@@ -22,6 +22,7 @@ public abstract class ApiControllerBase : ControllerBase, IActionFilter
     private IActionResult ApiResponse(bool error, string message, object? value, HttpStatusCode code) =>
         StatusCode((int)HttpStatusCode.OK, ResponseHandler.ResponseStatus(error, message, value, code));
 
+    [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
         if (!ModelState.IsValid)
@@ -42,5 +43,6 @@ public abstract class ApiControllerBase : ControllerBase, IActionFilter
         // no-op continue
     }
 
+    [NonAction]
     public void OnActionExecuted(ActionExecutedContext context) { }
 }

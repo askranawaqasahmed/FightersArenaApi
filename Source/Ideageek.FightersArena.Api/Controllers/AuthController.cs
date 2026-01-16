@@ -95,7 +95,8 @@ public class AuthController : ApiControllerBase
         {
             UserId = claims.TryGetValue(ClaimTypes.NameIdentifier, out var id) ? id : string.Empty,
             Email = claims.TryGetValue(ClaimTypes.Email, out var email) ? email : claims.GetValueOrDefault("email"),
-            Name = claims.GetValueOrDefault(ClaimTypes.Name)
+            Name = claims.GetValueOrDefault(ClaimTypes.Name),
+            Phone = claims.GetValueOrDefault(ClaimTypes.MobilePhone)
         };
 
         return ApiOk("User profile", profile);

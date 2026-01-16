@@ -29,8 +29,8 @@ namespace Ideageek.FightersArena.Services.Authorization
 
             using var db = CreateConnection();
             string sql = @"
-            INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash)
-            VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail, @EmailConfirmed, @PasswordHash)";
+            INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, PhoneNumber)
+            VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail, @EmailConfirmed, @PasswordHash, @PhoneNumber)";
 
             int rowsAffected = await db.ExecuteAsync(sql, user);
             return rowsAffected > 0 ? IdentityResult.Success : IdentityResult.Failed();
@@ -47,7 +47,8 @@ namespace Ideageek.FightersArena.Services.Authorization
                     Email = @Email, 
                     NormalizedEmail = @NormalizedEmail, 
                     EmailConfirmed = @EmailConfirmed, 
-                    PasswordHash = @PasswordHash
+                    PasswordHash = @PasswordHash,
+                    PhoneNumber = @PhoneNumber
                 WHERE Id = @Id";
 
             int rowsAffected = await db.ExecuteAsync(sql, user);

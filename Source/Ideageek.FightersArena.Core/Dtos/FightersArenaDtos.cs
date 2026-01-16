@@ -8,6 +8,7 @@ public record PagedResult<T>(IEnumerable<T> Items, int Total);
 public record AuthRegisterRequest(
     [Required, EmailAddress] string Email,
     [Required, MinLength(6)] string Password,
+    [Required] string PhoneNumber,
     [Required] string GamerTag,
     [Required] string DisplayName);
 

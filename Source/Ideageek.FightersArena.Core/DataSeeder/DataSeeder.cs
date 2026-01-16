@@ -90,15 +90,16 @@ namespace Ideageek.FightersArena.Core.DataSeeder
                         NormalizedUserName = user.UserName.ToUpper(),
                         Email = user.Email,
                         NormalizedEmail = user.Email.ToUpper(),
-                        EmailConfirmed = true
+                        EmailConfirmed = true,
+                        PhoneNumber = "0000000000"
                     };
 
                     // Hash the password securely
                     appUser.PasswordHash = _passwordHasher.HashPassword(appUser, "Ideageek123");
 
                     await dbConnection.ExecuteAsync(
-                        "INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash) " +
-                        "VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail, @EmailConfirmed, @PasswordHash)",
+                        "INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed, PasswordHash, PhoneNumber) " +
+                        "VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail, @EmailConfirmed, @PasswordHash, @PhoneNumber)",
                         appUser);
 
                     await dbConnection.ExecuteAsync(

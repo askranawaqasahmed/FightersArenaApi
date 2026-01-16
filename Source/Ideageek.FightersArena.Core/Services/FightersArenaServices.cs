@@ -66,7 +66,8 @@ public class AuthService : IAuthService
                 NormalizedUserName = normalizedEmail,
                 Email = request.Email,
                 NormalizedEmail = normalizedEmail,
-                FullName = request.DisplayName
+                FullName = request.DisplayName,
+                PhoneNumber = request.PhoneNumber
             };
 
             var hash = _passwordHasher.HashPassword(user, request.Password);
@@ -141,7 +142,8 @@ public class AuthService : IAuthService
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty)
+            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
+            new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty)
         };
 
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
@@ -170,6 +172,11 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(request.DisplayName))
         {
             throw new InvalidOperationException("Display name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+        {
+            throw new InvalidOperationException("Phone number is required.");
         }
     }
 
