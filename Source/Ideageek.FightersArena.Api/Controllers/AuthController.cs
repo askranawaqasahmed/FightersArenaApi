@@ -1,6 +1,8 @@
 using Ideageek.FightersArena.Core.Dtos;
+using Ideageek.FightersArena.Core.Entities.Authorization;
 using Ideageek.FightersArena.Core.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Security.Claims;
@@ -12,10 +14,12 @@ namespace Ideageek.FightersArena.Api.Controllers;
 public class AuthController : ApiControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IUserStore<AspNetUser> _userStore;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IUserStore<AspNetUser> userStore)
     {
         _authService = authService;
+        _userStore = userStore;
     }
 
     [HttpPost("signupmobile")]
@@ -97,6 +101,34 @@ public class AuthController : ApiControllerBase
             Email = claims.TryGetValue(ClaimTypes.Email, out var email) ? email : claims.GetValueOrDefault("email"),
             Name = claims.GetValueOrDefault(ClaimTypes.Name),
             Phone = claims.GetValueOrDefault(ClaimTypes.MobilePhone)
+        };
+
+        return ApiOk("User profile", profile);
+    }
+
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<IActionResult> Profile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var id))
+        {
+            return ApiError(HttpStatusCode.Unauthorized, "User not found in token");
+        }
+
+        var user = await _userStore.FindByIdAsync(id.ToString(), CancellationToken.None);
+        if (user is null)
+        {
+            return ApiError(HttpStatusCode.NotFound, "User not found");
+        }
+
+        var profile = new
+        {
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.UserName,
+            user.PhoneNumber
         };
 
         return ApiOk("User profile", profile);
