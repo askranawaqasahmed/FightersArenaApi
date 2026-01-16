@@ -15,11 +15,13 @@ public class AuthController : ApiControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IUserStore<AspNetUser> _userStore;
+    private readonly IPlayerService _playerService;
 
-    public AuthController(IAuthService authService, IUserStore<AspNetUser> userStore)
+    public AuthController(IAuthService authService, IUserStore<AspNetUser> userStore, IPlayerService playerService)
     {
         _authService = authService;
         _userStore = userStore;
+        _playerService = playerService;
     }
 
     [HttpPost("signupmobile")]
@@ -92,15 +94,29 @@ public class AuthController : ApiControllerBase
 
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
         var claims = User.Claims.ToDictionary(c => c.Type, c => c.Value);
+        var userIdValue = claims.TryGetValue(ClaimTypes.NameIdentifier, out var idClaim) ? idClaim : string.Empty;
+        Guid.TryParse(userIdValue, out var userId);
+
+        string? gamerTag = null;
+        string? profileName = null;
+        if (userId != Guid.Empty)
+        {
+            var player = await _playerService.GetByUserIdAsync(userId);
+            gamerTag = player?.GamerTag;
+            profileName = player?.DisplayName;
+        }
+
         var profile = new
         {
-            UserId = claims.TryGetValue(ClaimTypes.NameIdentifier, out var id) ? id : string.Empty,
+            UserId = userIdValue,
             Email = claims.TryGetValue(ClaimTypes.Email, out var email) ? email : claims.GetValueOrDefault("email"),
             Name = claims.GetValueOrDefault(ClaimTypes.Name),
-            Phone = claims.GetValueOrDefault(ClaimTypes.MobilePhone)
+            Phone = claims.GetValueOrDefault(ClaimTypes.MobilePhone),
+            GamerTag = gamerTag,
+            ProfileName = profileName
         };
 
         return ApiOk("User profile", profile);
@@ -122,13 +138,17 @@ public class AuthController : ApiControllerBase
             return ApiError(HttpStatusCode.NotFound, "User not found");
         }
 
+        var player = await _playerService.GetByUserIdAsync(user.Id);
+
         var profile = new
         {
             user.Id,
             user.FullName,
             user.Email,
             user.UserName,
-            user.PhoneNumber
+            user.PhoneNumber,
+            GamerTag = player?.GamerTag,
+            ProfileName = player?.DisplayName
         };
 
         return ApiOk("User profile", profile);
